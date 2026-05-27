@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaizen — Skill Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f0e8;
+  --surface: #ffffff;
+  --surface2: #f0ebe0;
+  --border: #e0d8cc;
+  --accent: #e85d2f;
+  --blue: #2f8be8;
+  --green: #27ae60;
+  --yellow: #f0a030;
+  --text: #1a1a1a;
+  --muted: #888880;
+  --radius: 16px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* NAV */
+.nav { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+.nav-tab { flex: 1; padding: 14px 4px; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; letter-spacing: 0.5px; text-transform: uppercase; background: none; border-top: none; border-left: none; border-right: none; }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-logo { display: flex; align-items: center; padding: 0 16px; font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 900; white-space: nowrap; }
+.nav-logo span { color: var(--accent); }
+
+/* PAGES */
+.page { display: none; padding: 20px 16px 80px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.25s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* HERO */
+.hero { margin-bottom: 20px; }
+.hero-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; line-height: 1.1; }
+.hero-title span { color: var(--accent); }
+.hero-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* CARDS */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.card-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--c, var(--accent)); }
+.stat-card:nth-child(2) { --c: var(--blue); }
+.stat-card:nth-child(3) { --c: var(--green); }
+.stat-card:nth-child(4) { --c: var(--yellow); }
+.stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+.stat-value { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; }
+.stat-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* XP */
+.xp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.xp-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.xp-title { font-size: 13px; font-weight: 600; }
+.xp-badge { font-size: 11px; font-weight: 600; background: #e85d2f18; color: var(--accent); padding: 4px 12px; border-radius: 20px; }
+.xp-desc { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.bar-bg { height: 7px; background: var(--surface2); border-radius: 7px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--accent), #f0803a); transition: width 0.7s ease; }
+.xp-nums { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+/* STREAK */
+.streak-card { background: var(--text); color: white; border-radius: var(--radius); padding: 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 16px; }
+.streak-flame { font-size: 40px; }
+.streak-info { flex: 1; }
+.streak-num { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; color: var(--accent); line-height: 1; }
+.streak-label { font-size: 12px; color: #ffffff88; margin-top: 2px; }
+.streak-best { font-size: 11px; color: #ffffff55; margin-top: 4px; }
+.btn-checkin { background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; white-space: nowrap; }
+.btn-checkin:disabled { background: #ffffff22; color: #ffffff44; cursor: not-allowed; }
+
+/* FOCUS CARD */
+.focus-card { background: var(--surface); border: 2px solid var(--accent); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; display: none; }
+.focus-card.visible { display: block; }
+.focus-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 6px; }
+.focus-name { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.focus-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+/* CHART */
+.chart-wrap { position: relative; height: 120px; display: flex; align-items: flex-end; gap: 6px; padding: 0 4px; }
+.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.chart-bar { width: 100%; border-radius: 6px 6px 0 0; background: var(--accent); opacity: 0.7; transition: all 0.5s ease; min-height: 4px; }
+.chart-bar.today { opacity: 1; }
+.chart-label { font-size: 9px; color: var(--muted); }
+.chart-val { font-size: 9px; color: var(--muted); }
+
+/* SECTION */
+.section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; margin-top: 20px; }
+.section-ttl { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.count-pill { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--surface2); padding: 2px 10px; border-radius: 20px; }
+.btn-sm { font-size: 12px; font-weight: 600; color: var(--accent); background: #e85d2f18; border: 1px solid #e85d2f33; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+.btn-sm:hover { background: #e85d2f28; }
+
+/* SKILL CARD */
+.skill-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; transition: all 0.2s; }
+.skill-card:hover { box-shadow: 0 4px 16px #00000010; border-color: #ccc8be; }
+.sk-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.sk-left { display: flex; align-items: center; gap: 10px; }
+.sk-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.sk-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.sk-cat { font-size: 11px; color: var(--muted); }
+.sk-actions { display: flex; gap: 5px; }
+.ico-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); transition: all 0.15s; }
+.ico-btn:hover { border-color: var(--accent); color: var(--accent); }
+.prog-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.prog-bg { height: 5px; background: var(--surface2); border-radius: 5px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 5px; transition: width 0.6s ease; }
+.fill-w { background: var(--accent); }
+.fill-p { background: var(--blue); }
+.fill-m { background: var(--green); }
+.sk-deadline { font-size: 11px; color: var(--yellow); font-weight: 500; margin-top: 6px; }
+.sk-notes { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); line-height: 1.5; }
+.focus-badge { font-size: 10px; font-weight: 600; background: var(--accent); color: white; padding: 2px 7px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+.sk-roadmap { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.roadmap-title { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.milestone { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.ms-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; }
+.ms-dot.done { background: var(--green); border-color: var(--green); }
+.ms-dot.active { background: var(--accent); border-color: var(--accent); }
+.ms-text { font-size: 11px; color: var(--muted); }
+.ms-text.done { text-decoration: line-through; }
+
+/* EMPTY */
+.empty { text-align: center; padding: 28px 16px; background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); color: var(--muted); }
+.empty-icon { font-size: 28px; margin-bottom: 8px; }
+.empty-txt { font-size: 13px; color: var(--text); font-weight: 500; margin-bottom: 3px; }
+.empty-sub { font-size: 11px; }
+
+/* GOALS PAGE */
+.goal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+.goal-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.goal-icon { font-size: 22px; }
+.goal-name { font-size: 15px; font-weight: 600; }
+.goal-target { font-size: 11px; color: var(--muted); }
+.goal-pct { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: var(--accent); margin-left: auto; }
+.deadline-warn { font-size: 11px; color: var(--yellow); margin-top: 6px; font-weight: 500; }
+
+/* SESSION LOG */
+.session-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+.session-icon { font-size: 22px; }
+.session-info { flex: 1; }
+.session-name { font-size: 14px; font-weight: 600; }
+.session-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.session-time { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--accent); }
+
+/* WEEKLY SUMMARY */
+.week-summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.week-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.week-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.week-row:last-child { border-bottom: none; }
+.week-skill { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.week-mins { font-size: 13px; font-weight: 600; color: var(--accent); }
+
+/* ACHIEVEMENTS */
+.badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.badge-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; transition: all 0.2s; }
+.badge-card.unlocked { border-color: var(--accent); background: #e85d2f08; }
+.badge-card.locked { opacity: 0.4; }
+.badge-emoji { font-size: 28px; margin-bottom: 6px; }
+.badge-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.badge-desc { font-size: 10px; color: var(--muted); line-height: 1.3; }
+
+/* FAB */
+.fab { position: fixed; bottom: 24px; right: 20px; background: var(--accent); color: white; border: none; width: 54px; height: 54px; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px #e85d2f44; transition: all 0.2s; z-index: 40; display: flex; align-items: center; justify-content: center; }
+.fab:hover { transform: scale(1.08); }
+
+/* LOG SESSION BTN */
+.btn-log { background: var(--text); color: white; border: none; padding: 12px 20px; border-radius: 50px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0 auto 20px; transition: all 0.2s; }
+.btn-log:hover { background: #333; }
+
+/* MODAL */
+.overlay { display: none; position: fixed; inset: 0; background: #00000055; backdrop-filter: blur(4px); z-index: 100; align-items: flex-end; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 18px; }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 18px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); display: block; margin-bottom: 6px; }
+.form-input, .form-select, .form-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 11px 13px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 65px; }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+.emoji-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.emj { width: 40px; height: 40px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface2); font-size: 19px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.emj.sel { border-color: var(--accent); background: #e85d2f15; }
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.check-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+.modal-btns { display: flex; gap: 10px; margin-top: 18px; }
+.btn-cancel { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: none; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--muted); cursor: pointer; }
+.btn-save { flex: 2; padding: 12px; border-radius: 12px; border: none; background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* SESSION MODAL */
+.session-skill-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
+.ssk { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; background: var(--surface2); }
+.ssk.sel { border-color: var(--accent); background: #e85d2f10; }
+.ssk-name { font-size: 13px; font-weight: 500; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; font-size: 13px; font-weight: 500; padding: 11px 20px; border-radius: 50px; z-index: 300; white-space: nowrap; animation: tIn 0.3s ease, tOut 0.3s ease 1.8s forwards; }
+@keyframes tIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes tOut { to { opacity: 0; } }
+
+.pri-badge { font-size: 10px; font-weight: 600; background: var(--accent); color: white; padding: 2px 7px; border-radius: 20px; margin-left: 5px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">K<span>.</span></div>
+  <button class="nav-tab active" onclick="goPage('dashboard',this)">Home</button>
+  <button class="nav-tab" onclick="goPage('skills',this)">Skills</button>
+  <button class="nav-tab" onclick="goPage('goals',this)">Goals</button>
+  <button class="nav-tab" onclick="goPage('sessions',this)">Log</button>
+  <button class="nav-tab" onclick="goPage('achievements',this)">Awards</button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddSkill()" title="Add Skill">+</button>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="page active" id="page-dashboard">
+  <div class="hero">
+    <div class="hero-title">Time to begin.<br><span>Pick a skill.</span></div>
+    <div class="hero-sub">Track your growth. One skill at a time.</div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Skills</div><div class="stat-value" id="s-total">0</div><div class="stat-note">added so far</div></div>
+    <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value" id="s-prog">0</div><div class="stat-note">currently learning</div></div>
+    <div class="stat-card"><div class="stat-label">Mastered</div><div class="stat-value" id="s-mast">0</div><div class="stat-note">fully developed</div></div>
+    <div class="stat-card"><div class="stat-label">Want to Learn</div><div class="stat-value" id="s-want">0</div><div class="stat-note">on your list</div></div>
+  </div>
+
+  <!-- STREAK -->
+  <div class="streak-card">
+    <div class="streak-flame">🔥</div>
+    <div class="streak-info">
+      <div class="streak-num" id="streak-num">0</div>
+      <div class="streak-label">Day Streak</div>
+      <div class="streak-best" id="streak-best">Best: 0 days</div>
+    </div>
+    <button class="btn-checkin" id="checkin-btn" onclick="doCheckin()">Check In</button>
+  </div>
+
+  <!-- XP -->
+  <div class="xp-card">
+    <div class="xp-row"><div class="xp-title">Your Progress Level</div><div class="xp-badge" id="xp-badge">Level 1 — Beginner</div></div>
+    <div class="xp-desc" id="xp-desc">Master skills to earn XP and level up.</div>
+    <div class="bar-bg"><div class="bar-fill" id="xp-bar" style="width:0%"></div></div>
+    <div class="xp-nums"><span id="xp-cur">0 XP</span><span id="xp-nxt">100 XP to Level 2</span></div>
+  </div>
+
+  <!-- WEEKLY ACTIVITY CHART -->
+  <div class="card">
+    <div class="card-title">Weekly Activity</div>
+    <div class="chart-wrap" id="week-chart"></div>
+  </div>
+
+  <!-- PRIMARY FOCUS -->
+  <div class="focus-card" id="focus-card">
+    <div class="focus-tag">Primary Focus</div>
+    <div class="focus-name" id="focus-name">—</div>
+    <div class="focus-sub" id="focus-sub">—</div>
+    <div class="bar-bg"><div class="bar-fill" id="focus-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- RECENT SKILLS -->
+  <div class="section-hdr"><div class="section-ttl">Recent Skills</div></div>
+  <div id="recent-list"></div>
+</div>
+
+<!-- ══ SKILLS ══ -->
+<div class="page" id="page-skills">
+  <div class="hero" style="margin-bottom:14px;">
+    <div class="hero-title" style="font-size:26px;">My Skills</div>
+    <div class="hero-sub">Everything you know and want to learn.</div>
+  </div>
+
+  <div class="section-hdr">
+    <div class="section-ttl">Want to Learn <span class="count-pill" id="c-want">0</span></div>
+    <button class="btn-sm" onclick="openAddSkill('Want to Learn')">+ Add</button>
+  </div>
+  <div id="list-want"></div>
+
+  <div class="section-hdr">
+    <div class="section-ttl">Developing <span class="count-pill" id="c-prog">0</span></div>
+    <button class="btn-sm" onclick="openAddSkill('In Progress')">+ Add</button>
+  </div>
+  <div id="list-prog"></div>
+
+  <div class="section-hdr">
+    <div class="section-ttl">Mastered <span class="count-pill" id="c-mast">0</span></div>
+    <button class="btn-sm" onclick="openAddSkill('Mastered')">+ Add</button>
+  </div>
+  <div id="list-mast"></div>
+</div>
+
+<!-- ══ GOALS ══ -->
+<div class="page" id="page-goals">
+  <div class="hero" style="margin-bottom:14px;">
+    <div class="hero-title" style="font-size:26px;">Goals</div>
+    <div class="hero-sub">How close are you to your targets?</div>
+  </div>
+  <div id="goals-list"></div>
+</div>
+
+<!-- ══ SESSION LOG ══ -->
+<div class="page" id="page-sessions">
+  <div class="hero" style="margin-bottom:14px;">
+    <div class="hero-title" style="font-size:26px;">Session Log</div>
+    <div class="hero-sub">Every minute of learning counts.</div>
+  </div>
+  <button class="btn-log" onclick="openSessionModal()">+ Log a Session</button>
+
+  <!-- WEEKLY SUMMARY -->
+  <div class="week-summary" id="week-summary-card">
+    <div class="week-title">This Week's Summary</div>
+    <div id="week-summary-list"><div style="font-size:13px;color:var(--muted);text-align:center;padding:10px">No sessions logged yet</div></div>
+  </div>
+
+  <div class="section-hdr" style="margin-top:0"><div class="section-ttl">All Sessions</div></div>
+  <div id="sessions-list"></div>
+</div>
+
+<!-- ══ ACHIEVEMENTS ══ -->
+<div class="page" id="page-achievements">
+  <div class="hero" style="margin-bottom:14px;">
+    <div class="hero-title" style="font-size:26px;">Achievements</div>
+    <div class="hero-sub">Earn badges as you grow.</div>
+  </div>
+  <div class="badges-grid" id="badges-grid"></div>
+</div>
+
+<!-- ADD SKILL MODAL -->
+<div class="overlay" id="skill-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add a Skill</div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-row" id="emj-row"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Skill Name</label>
+      <input class="form-input" id="f-name" placeholder="e.g. Python, Public Speaking…"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="f-cat">
+          <option>Technical</option><option>Soft Skill</option><option>Creative</option>
+          <option>Language</option><option>Physical</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="f-status">
+          <option>Want to Learn</option><option>In Progress</option><option>Mastered</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Current Level</label>
+        <select class="form-select" id="f-level">
+          <option value="0">None</option><option value="33">Beginner</option>
+          <option value="66">Intermediate</option><option value="100">Advanced</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Level</label>
+        <select class="form-select" id="f-target">
+          <option value="33">Beginner</option><option value="66">Intermediate</option>
+          <option value="100">Advanced</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Deadline (optional)</label>
+      <input class="form-input" id="f-deadline" type="date"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Milestones (one per line)</label>
+      <textarea class="form-textarea" id="f-milestones" placeholder="e.g. Complete beginner course&#10;Build first project&#10;Get certified"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes / Resources</label>
+      <textarea class="form-textarea" id="f-notes" placeholder="Links, books, thoughts…"></textarea>
+    </div>
+    <label class="check-row" style="margin-bottom:14px">
+      <input type="checkbox" id="f-primary"> Set as Primary Focus
+    </label>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+      <button class="btn-save" onclick="saveSkill()">Save Skill</button>
+    </div>
+  </div>
+</div>
+
+<!-- SESSION MODAL -->
+<div class="overlay" id="session-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Log a Session</div>
+    <div class="form-group">
+      <label class="form-label">Select Skill</label>
+      <div class="session-skill-list" id="ssklist"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <input class="form-input" id="s-mins" type="number" min="1" max="480" placeholder="e.g. 30"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" id="s-date" type="date"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-textarea" id="s-notes" placeholder="What did you work on?"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+      <button class="btn-save" onclick="saveSession()">Log Session</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const EMOJIS = ['💻','🎨','🗣️','📊','🌍','🎵','⚽','📚','🧠','🔬','✍️','🎯','🏋️','📸','🤝','🧩','🎭','🍳'];
+let selEmoji = EMOJIS[0];
+let skills = [], sessions = [], nextSkillId = 1, nextSessionId = 1;
+let streak = 0, bestStreak = 0, lastCheckin = null;
+let selectedSessionSkill = null;
+
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const XP_MAP = { 'Want to Learn': 10, 'In Progress': 25, 'Mastered': 100 };
+const LEVELS = [
+  { l:1, xp:0, name:'Beginner' }, { l:2, xp:100, name:'Explorer' },
+  { l:3, xp:250, name:'Learner' }, { l:4, xp:500, name:'Practitioner' },
+  { l:5, xp:1000, name:'Expert' }
+];
+
+const BADGES = [
+  { id:'first', emoji:'🌱', name:'First Step', desc:'Add your first skill', check: () => skills.length >= 1 },
+  { id:'trio', emoji:'🎯', name:'Focused Three', desc:'Add 3 skills', check: () => skills.length >= 3 },
+  { id:'master1', emoji:'🏆', name:'First Master', desc:'Master a skill', check: () => skills.some(s=>s.status==='Mastered') },
+  { id:'streak3', emoji:'🔥', name:'On Fire', desc:'3-day streak', check: () => streak >= 3 },
+  { id:'streak7', emoji:'⚡', name:'Unstoppable', desc:'7-day streak', check: () => streak >= 7 },
+  { id:'session5', emoji:'⏱️', name:'Dedicated', desc:'Log 5 sessions', check: () => sessions.length >= 5 },
+  { id:'overachiever', emoji:'🚀', name:'Overachiever', desc:'Exceed a target level', check: () => skills.some(s=>s.level>s.target) },
+  { id:'allthree', emoji:'🌟', name:'All Around', desc:'Have skills in all 3 sections', check: () => ['Want to Learn','In Progress','Mastered'].every(st=>skills.some(s=>s.status===st)) },
+  { id:'hour', emoji:'⏰', name:'Hour Learner', desc:'Log 60+ mins in one session', check: () => sessions.some(s=>s.mins>=60) },
+];
+
+// ── LOCAL STORAGE ──
+function saveData() {
+  localStorage.setItem('kaizen_skills', JSON.stringify(skills));
+  localStorage.setItem('kaizen_sessions', JSON.stringify(sessions));
+  localStorage.setItem('kaizen_nextSkillId', nextSkillId);
+  localStorage.setItem('kaizen_nextSessionId', nextSessionId);
+  localStorage.setItem('kaizen_streak', streak);
+  localStorage.setItem('kaizen_bestStreak', bestStreak);
+  localStorage.setItem('kaizen_lastCheckin', lastCheckin || '');
+}
+
+function loadData() {
+  try {
+    const s = localStorage.getItem('kaizen_skills');
+    const se = localStorage.getItem('kaizen_sessions');
+    if (s) skills = JSON.parse(s);
+    if (se) sessions = JSON.parse(se);
+    nextSkillId = parseInt(localStorage.getItem('kaizen_nextSkillId')) || 1;
+    nextSessionId = parseInt(localStorage.getItem('kaizen_nextSessionId')) || 1;
+    streak = parseInt(localStorage.getItem('kaizen_streak')) || 0;
+    bestStreak = parseInt(localStorage.getItem('kaizen_bestStreak')) || 0;
+    lastCheckin = localStorage.getItem('kaizen_lastCheckin') || null;
+  } catch(e) { console.log('No saved data found'); }
+}
+
+// ── HELPERS ──
+function levelLabel(v) {
+  if (v>=100) return 'Advanced'; if (v>=66) return 'Intermediate';
+  if (v>=33) return 'Beginner'; return 'None';
+}
+
+function deadlineText(d) {
+  if (!d) return '';
+  const diff = Math.ceil((new Date(d) - new Date()) / 86400000);
+  if (diff < 0) return '⚠️ Deadline passed';
+  if (diff === 0) return '⚠️ Due today!';
+  return `📅 ${diff} day${diff!==1?'s':''} left`;
+}
+
+function calcXP() { return skills.reduce((s,k) => s+(XP_MAP[k.status]||0), 0); }
+
+function getCurLevel(xp) {
+  let c = LEVELS[0];
+  for (const l of LEVELS) { if (xp >= l.xp) c = l; }
+  return c;
+}
+
+function getNextLevel(xp) {
+  for (const l of LEVELS) { if (l.xp > xp) return l; }
+  return null;
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+// ── RENDER ──
+function renderAll() {
+  renderStats(); renderXP(); renderStreak(); renderChart();
+  renderFocus(); renderRecent(); renderSkillLists();
+  renderGoals(); renderSessions(); renderBadges();
+}
+
+function renderStats() {
+  document.getElementById('s-total').textContent = skills.length;
+  document.getElementById('s-prog').textContent = skills.filter(s=>s.status==='In Progress').length;
+  document.getElementById('s-mast').textContent = skills.filter(s=>s.status==='Mastered').length;
+  document.getElementById('s-want').textContent = skills.filter(s=>s.status==='Want to Learn').length;
+  document.getElementById('c-want').textContent = skills.filter(s=>s.status==='Want to Learn').length;
+  document.getElementById('c-prog').textContent = skills.filter(s=>s.status==='In Progress').length;
+  document.getElementById('c-mast').textContent = skills.filter(s=>s.status==='Mastered').length;
+}
+
+function renderXP() {
+  const xp = calcXP();
+  const cur = getCurLevel(xp), nxt = getNextLevel(xp);
+  document.getElementById('xp-badge').textContent = `Level ${cur.l} — ${cur.name}`;
+  document.getElementById('xp-cur').textContent = `${xp} XP`;
+  if (nxt) {
+    const pct = ((xp - cur.xp) / (nxt.xp - cur.xp)) * 100;
+    document.getElementById('xp-bar').style.width = pct + '%';
+    document.getElementById('xp-nxt').textContent = `${nxt.xp - xp} XP to Level ${nxt.l}`;
+    document.getElementById('xp-desc').textContent = `You are a ${cur.name}. Master more skills to become a ${nxt.name}!`;
+  } else {
+    document.getElementById('xp-bar').style.width = '100%';
+    document.getElementById('xp-nxt').textContent = 'Max Level!';
+    document.getElementById('xp-desc').textContent = 'You have reached the highest level!';
+  }
+}
+
+function renderStreak() {
+  document.getElementById('streak-num').textContent = streak;
+  document.getElementById('streak-best').textContent = `Best: ${bestStreak} days`;
+  const btn = document.getElementById('checkin-btn');
+  btn.disabled = lastCheckin === today();
+  btn.textContent = lastCheckin === today() ? '✓ Done' : 'Check In';
+}
+
+function renderChart() {
+  const el = document.getElementById('week-chart');
+  const now = new Date();
+  const bars = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const mins = sessions.filter(s => s.date === dateStr).reduce((sum, s) => sum + s.mins, 0);
+    bars.push({ label: DAYS[d.getDay()], mins, isToday: i === 0 });
+  }
+  const maxMins = Math.max(...bars.map(b => b.mins), 1);
+  el.innerHTML = bars.map(b => `
+    <div class="chart-bar-wrap">
+      <div class="chart-val">${b.mins > 0 ? b.mins+'m' : ''}</div>
+      <div class="chart-bar${b.isToday ? ' today' : ''}" style="height:${Math.max((b.mins/maxMins)*90,b.mins>0?8:2)}px"></div>
+      <div class="chart-label">${b.label}</div>
+    </div>`).join('');
+}
+
+function renderFocus() {
+  const p = skills.find(s => s.primary);
+  const card = document.getElementById('focus-card');
+  if (p) {
+    card.classList.add('visible');
+    document.getElementById('focus-name').textContent = p.name;
+    document.getElementById('focus-sub').textContent = `${levelLabel(p.level)} → ${levelLabel(p.target)}`;
+    document.getElementById('focus-bar').style.width = p.level + '%';
+  } else { card.classList.remove('visible'); }
+}
+
+function renderRecent() {
+  const recent = [...skills].slice(0, 3);
+  document.getElementById('recent-list').innerHTML = recent.length
+    ? recent.map(s => skillCardHTML(s, 'mini')).join('') : emptyHTML('🌱','No skills yet','Tap + to add your first skill');
+}
+
+function skillCardHTML(s, mode) {
+  const fillCls = s.status==='Mastered'?'fill-m':s.status==='In Progress'?'fill-p':'fill-w';
+  const msHTML = s.milestones && s.milestones.length ? `
+    <div class="sk-roadmap">
+      <div class="roadmap-title">Roadmap</div>
+      ${s.milestones.map((m,i) => {
+        const done = s.level >= (((i+1)/s.milestones.length)*100);
+        const active = !done && i === s.milestones.findIndex((_,j) => s.level < (((j+1)/s.milestones.length)*100));
+        return `<div class="milestone"><div class="ms-dot${done?' done':active?' active':''}"></div><div class="ms-text${done?' done':''}">${m}</div></div>`;
+      }).join('')}
+    </div>` : '';
+  return `
+    <div class="skill-card">
+      <div class="sk-top">
+        <div class="sk-left">
+          <div class="sk-icon">${s.emoji}</div>
+          <div>
+            <div class="sk-name">${s.name}${s.primary?'<span class="pri-badge">Focus</span>':''}</div>
+            <div class="sk-cat">${s.category}</div>
+          </div>
+        </div>
+        <div class="sk-actions">
+          <button class="ico-btn" onclick="togglePrimary(${s.id})" title="Primary focus">⭐</button>
+          <button class="ico-btn" onclick="moveSkill(${s.id})" title="Move forward">↑</button>
+          <button class="ico-btn" onclick="deleteSkill(${s.id})" title="Delete">✕</button>
+        </div>
+      </div>
+      <div class="prog-row"><span>${levelLabel(s.level)}</span><span>Goal: ${levelLabel(s.target)}</span></div>
+      <div class="prog-bg"><div class="prog-fill ${fillCls}" style="width:${s.level}%"></div></div>
+      ${s.deadline ? `<div class="sk-deadline">${deadlineText(s.deadline)}</div>` : ''}
+      ${msHTML}
+      ${s.notes ? `<div class="sk-notes">${s.notes}</div>` : ''}
+    </div>`;
+}
+
+function emptyHTML(icon, txt, sub) {
+  return `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-txt">${txt}</div><div class="empty-sub">${sub}</div></div>`;
+}
+
+function renderSkillLists() {
+  const want = skills.filter(s=>s.status==='Want to Learn');
+  const prog = skills.filter(s=>s.status==='In Progress');
+  const mast = skills.filter(s=>s.status==='Mastered');
+  document.getElementById('list-want').innerHTML = want.length ? want.map(s=>skillCardHTML(s)).join('') : emptyHTML('📋','Nothing yet','Skills you plan to learn');
+  document.getElementById('list-prog').innerHTML = prog.length ? prog.map(s=>skillCardHTML(s)).join('') : emptyHTML('🔥','Nothing in progress','Skills you are actively learning');
+  document.getElementById('list-mast').innerHTML = mast.length ? mast.map(s=>skillCardHTML(s)).join('') : emptyHTML('🏆','No mastered skills','Skills you have fully developed');
+}
+
+function renderGoals() {
+  const el = document.getElementById('goals-list');
+  if (!skills.length) { el.innerHTML = emptyHTML('🎯','No goals yet','Add skills with a target level'); return; }
+  el.innerHTML = skills.map(s => {
+    const pct = s.target > 0 ? Math.min(Math.round((s.level/s.target)*100), 100) : 0;
+    const exceeded = s.level > s.target;
+    return `<div class="goal-card">
+      <div class="goal-hdr">
+        <div class="goal-icon">${s.emoji}</div>
+        <div><div class="goal-name">${s.name}</div><div class="goal-target">Target: ${levelLabel(s.target)}${exceeded?' 🚀 Exceeded!':''}</div></div>
+        <div class="goal-pct">${pct}%</div>
+      </div>
+      <div class="prog-bg"><div class="prog-fill fill-p" style="width:${pct}%"></div></div>
+      ${s.deadline ? `<div class="deadline-warn">${deadlineText(s.deadline)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderSessions() {
+  // Weekly summary
+  const weekMins = {};
+  const now = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().split('T')[0];
+    sessions.filter(s=>s.date===ds).forEach(s => {
+      weekMins[s.skillId] = (weekMins[s.skillId]||0) + s.mins;
+    });
+  }
+  const wEl = document.getElementById('week-summary-list');
+  const entries = Object.entries(weekMins);
+  if (!entries.length) { wEl.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:10px">No sessions this week</div>'; }
+  else {
+    wEl.innerHTML = entries.map(([id, mins]) => {
+      const sk = skills.find(s=>s.id==id);
+      if (!sk) return '';
+      return `<div class="week-row"><div class="week-skill"><span>${sk.emoji}</span><span>${sk.name}</span></div><div class="week-mins">${mins} min</div></div>`;
+    }).join('');
+  }
+
+  // All sessions
+  const el = document.getElementById('sessions-list');
+  if (!sessions.length) { el.innerHTML = emptyHTML('⏱️','No sessions yet','Log your first learning session'); return; }
+  el.innerHTML = [...sessions].reverse().map(s => {
+    const sk = skills.find(k=>k.id===s.skillId);
+    if (!sk) return '';
+    return `<div class="session-card">
+      <div class="session-icon">${sk.emoji}</div>
+      <div class="session-info">
+        <div class="session-name">${sk.name}</div>
+        <div class="session-meta">${s.date}${s.notes ? ' · '+s.notes : ''}</div>
+      </div>
+      <div class="session-time">${s.mins}m</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBadges() {
+  document.getElementById('badges-grid').innerHTML = BADGES.map(b => {
+    const unlocked = b.check();
+    return `<div class="badge-card ${unlocked?'unlocked':'locked'}">
+      <div class="badge-emoji">${b.emoji}</div>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${b.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── ACTIONS ──
+function togglePrimary(id) {
+  skills = skills.map(s => ({...s, primary: s.id===id ? !s.primary : false}));
+  saveData(); renderAll(); showToast('Primary focus updated ⭐');
+}
+
+function deleteSkill(id) {
+  skills = skills.filter(s=>s.id!==id);
+  saveData(); renderAll(); showToast('Skill removed');
+}
+
+function moveSkill(id) {
+  const s = skills.find(x=>x.id===id);
+  if (!s) return;
+  const order = ['Want to Learn','In Progress','Mastered'];
+  const idx = order.indexOf(s.status);
+  if (idx === order.length-1) { showToast('Already mastered! 🏆'); return; }
+  s.status = order[idx+1];
+  if (s.status==='Mastered') s.level = 100;
+  else if (s.status==='In Progress') s.level = Math.max(s.level, 33);
+  saveData(); renderAll(); showToast(`Moved to "${s.status}" 🎉`);
+}
+
+function doCheckin() {
+  if (lastCheckin === today()) return;
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr = yesterday.toISOString().split('T')[0];
+  if (lastCheckin === yStr) { streak++; } else { streak = 1; }
+  if (streak > bestStreak) bestStreak = streak;
+  lastCheckin = today();
+  saveData(); renderAll(); showToast(`🔥 ${streak}-day streak!`);
+}
+
+// ── MODALS ──
+let selSessionSkillId = null;
+
+function openAddSkill(status) {
+  selEmoji = EMOJIS[0];
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-milestones').value = '';
+  document.getElementById('f-deadline').value = '';
+  document.getElementById('f-primary').checked = false;
+  document.getElementById('f-cat').value = 'Technical';
+  document.getElementById('f-status').value = status || 'Want to Learn';
+  document.getElementById('f-level').value = status==='Mastered'?'100':'0';
+  document.getElementById('f-target').value = '100';
+  buildEmojiRow();
+  document.getElementById('skill-modal').classList.add('open');
+}
+
+function buildEmojiRow() {
+  document.getElementById('emj-row').innerHTML = EMOJIS.map(e =>
+    `<button class="emj${e===selEmoji?' sel':''}" onclick="pickEmoji('${e}',this)">${e}</button>`
+  ).join('');
+}
+
+function pickEmoji(e, el) {
+  selEmoji = e;
+  document.querySelectorAll('.emj').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function saveSkill() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const isPrimary = document.getElementById('f-primary').checked;
+  if (isPrimary) skills = skills.map(s=>({...s,primary:false}));
+  const msText = document.getElementById('f-milestones').value.trim();
+  const milestones = msText ? msText.split('\n').map(m=>m.trim()).filter(Boolean) : [];
+  skills.unshift({
+    id: nextSkillId++, emoji: selEmoji, name,
+    category: document.getElementById('f-cat').value,
+    status: document.getElementById('f-status').value,
+    level: parseInt(document.getElementById('f-level').value),
+    target: parseInt(document.getElementById('f-target').value),
+    deadline: document.getElementById('f-deadline').value,
+    notes: document.getElementById('f-notes').value.trim(),
+    milestones, primary: isPrimary
+  });
+  closeModals(); saveData(); renderAll(); showToast('Skill added! 🎉');
+}
+
+function openSessionModal() {
+  if (!skills.length) { showToast('Add a skill first!'); return; }
+  selSessionSkillId = null;
+  document.getElementById('s-mins').value = '';
+  document.getElementById('s-date').value = today();
+  document.getElementById('s-notes').value = '';
+  document.getElementById('ssklist').innerHTML = skills.map(s =>
+    `<div class="ssk" id="ssк-${s.id}" onclick="selectSessionSkill(${s.id},this)">
+      <span>${s.emoji}</span><span class="ssк-name">${s.name}</span>
+    </div>`
+  ).join('');
+  document.getElementById('session-modal').classList.add('open');
+}
+
+function selectSessionSkill(id, el) {
+  selSessionSkillId = id;
+  document.querySelectorAll('.ssk').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function saveSession() {
+  if (!selSessionSkillId) { showToast('Select a skill first'); return; }
+  const mins = parseInt(document.getElementById('s-mins').value);
+  if (!mins || mins < 1) { document.getElementById('s-mins').focus(); return; }
+  sessions.push({
+    id: nextSessionId++, skillId: selSessionSkillId,
+    mins, date: document.getElementById('s-date').value,
+    notes: document.getElementById('s-notes').value.trim()
+  });
+  closeModals(); saveData(); renderAll(); showToast(`Session logged — ${mins} mins 💪`);
+}
+
+function closeModals() {
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('open'));
+}
+
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target===o) closeModals(); });
+});
+
+// ── NAV ──
+function goPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2300);
+}
+
+loadData();
+renderAll();
+</script>
+</body>
+</html>
